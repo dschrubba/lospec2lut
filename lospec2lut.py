@@ -232,6 +232,11 @@ def fetch_lospec_palette(slug: str) -> dict:
     return data
 
 
+def read_json(file_path):
+    with open(file_path, "r") as f:
+        return json.load(f)
+
+
 def parse_hex_string(hex_str: str) -> list[tuple[float, float, float]]:
     """Parse a space- or comma-separated string of hex colors."""
     tokens = hex_str.replace(",", " ").split()
@@ -259,6 +264,7 @@ examples:
   python lospec2lut.py resurrect-64
   python lospec2lut.py lospec500 --size 65 --format both
   python lospec2lut.py nintendo-gameboy-bgb --format 3dl --bit-depth 12
+  python lospec2lut.py my-pal --json mypalette.json --output ./luts/
   python lospec2lut.py my-pal --hex "9bbc0f 8bac0f 306230 0f380f"
   python lospec2lut.py resurrect-64 --linear --output ./luts/
         """,
@@ -300,6 +306,14 @@ examples:
              'Lospec API. Example: --hex "ff0000 00ff00 0000ff"',
     )
     parser.add_argument(
+        "--json",
+        type=str,
+        default=None,
+        metavar="JSON",
+        help="Provide palette colors from a local JSON file (lospec format), bypassing the "
+             'Lospec API. Example: --json mypalette.json',
+    )
+    parser.add_argument(
         "--linear",
         action="store_true",
         help="Use linear-light (perceptually uniform) distance for "
@@ -320,6 +334,13 @@ examples:
         palette_rgb = parse_hex_string(args.hex)
         palette_title = args.slug
         print(f"Using {len(palette_rgb)} directly-provided colors.")
+    elif args.json:
+        data = read_json(args.json)
+        palette_title = data.get("name", args.slug)
+        palette_rgb = [hex_to_rgb(h) for h in data["colors"]]
+        print(f"  Name   : {palette_title}")
+        print(f"  Author : {data.get('author', 'unknown')}")
+        print(f"  Colors : {len(palette_rgb)}")
     else:
         data = fetch_lospec_palette(args.slug)
         palette_title = data.get("name", args.slug)
